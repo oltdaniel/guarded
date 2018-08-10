@@ -17,7 +17,8 @@ start(_Type, _Args) ->
   Router = cowboy_router:compile([ {
     '_',
     [
-     {"/", cowboy_static, {priv_file, guarded, "index.html"} }
+     {"/", cowboy_static, {priv_file, guarded, "index.html"} },
+     {"/assets/[...]", cowboy_static, {priv_dir, guarded, "assets/" } }
     ]
    } ]),
   % Fire up a new cowboy http instance
