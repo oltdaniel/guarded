@@ -1,0 +1,6 @@
+-sname guarded
+
+-setcookie guarded
+
++K true
++A30

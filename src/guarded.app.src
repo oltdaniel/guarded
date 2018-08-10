@@ -1,0 +1,16 @@
+{application, guarded,
+ [{description, "visualize a guarded messaging protocol"},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {mod, { guarded_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    cowboy
+   ]},
+  {env,[]},
+  {modules, []},
+  {maintainers, []},
+  {licenses, ["MIT"]},
+  {links, ["https://github.com/oltdaniel/guarded"]}
+ ]}.
