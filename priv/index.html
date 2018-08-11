@@ -6,4 +6,16 @@
   <body>
     <h1>Hello World</h1>
   </body>
+  <script type="text/javascript">
+    var s = new WebSocket("ws://localhost:1234/ws");
+    s.onmessage = function(m) {
+      console.log(m);
+    };
+    
+    function sendMessage() {
+      s.send("Hello");
+      setTimeout(sendMessage, 1000);
+    }
+    setTimeout(sendMessage, 1000);
+  </script>
 </html>

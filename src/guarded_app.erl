@@ -18,7 +18,8 @@ start(_Type, _Args) ->
     '_',
     [
      {"/", cowboy_static, {priv_file, guarded, "index.html"} },
-     {"/assets/[...]", cowboy_static, {priv_dir, guarded, "assets/" } }
+     {"/assets/[...]", cowboy_static, {priv_dir, guarded, "assets/" } },
+     {"/ws", guarded_ws_handler, []}
     ]
    } ]),
   % Fire up a new cowboy http instance
