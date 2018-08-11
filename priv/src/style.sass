@@ -1,2 +1,81 @@
-body
-  background: #FF0000
+/*! Copyright 2018, Daniel Oltmanns (https://github.com/oltdaniel) */
+
+// Define some variables
+$color-text: #212121
+$color-muted: #AAAAAA
+$color-error: #DD2C00
+$color-accent: #2962ff
+$color-accent-dark: #1565C0
+
+// Specify basic elements
+*
+  font-family: monospace
+  font-size: .9rem
+  box-sizing: border-box
+  outline: none
+
+// Specify custom elements
+.window
+  height: 90vh
+  max-height: 600px
+  max-width: 450px
+  margin: auto
+  display: block
+  position: relative
+  padding: 5px
+  overflow: hidden
+
+  .message-history
+    height: 90%
+    overflow-x: hidden
+    overflow-y: auto
+
+    .message
+      display: block
+      margin-bottom: 10px
+      padding: 5px
+
+      &.me
+        text-align: right
+
+        &:after
+          content: "- "
+
+      &.partner
+        &:before
+          content: "+ "
+
+      &.server
+        text-align: center
+        color: $color-muted
+
+        &.error
+          color: $color-error
+  .message-input
+    display: flex
+    position: absolute
+    bottom: 0
+    left: 0
+    width: 100%
+
+    input
+      flex: 1
+
+// Input elements
+input
+  padding: 3px 10px
+  border: none
+  border-bottom: 1px solid $color-muted
+
+  &:focus
+    border-bottom-color: $color-accent-dark
+
+button
+  padding: 5px 15px
+  border: none
+  border-radius: 3px 0 0 0
+  background-color: $color-accent
+  color: #FFFFFF
+
+  &:active
+    background-color: $color-accent-dark
