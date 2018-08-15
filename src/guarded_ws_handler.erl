@@ -2,11 +2,15 @@
 %% Define module properties
 %
 -module(guarded_ws_handler).
+-behaviour(cowboy_http_websocket_handler).
 
 %
 %% Make functions public
 %
--export([init/2, websocket_init/1, websocket_handle/2, websocket_info/2]).
+-export([
+  init/2, websocket_init/1, websocket_handle/2, websocket_info/2,
+  terminate/2
+]).
 
 %
 %% Entry function for a new socket
@@ -18,7 +22,9 @@ init(Req, Opts) ->
 %% Mix up socket on connection
 %
 websocket_init(State) ->
-  {ok, State}.
+  Uid = generate_uid(),
+  guarded_messenger:connect(Uid, self()),
+  {reply, {text, << "uid:", Uid/binary>>}, State}.
 
 %
 %% Handle text messages
@@ -43,3 +49,16 @@ websocket_info({timeout, _Ref, Msg}, State) ->
 %
 websocket_info(_Info, State) ->
   {ok, State}.
+
+%
+%% Handle termination callback
+%
+terminate(_Reason, _State) ->
+  guarded_messenger:disconnect(self()),
+  ok.
+
+%
+%% Generate random user id
+%
+generate_uid() ->
+  base64:encode(crypto:strong_rand_bytes(8)).

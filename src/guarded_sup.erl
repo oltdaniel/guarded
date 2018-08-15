@@ -16,6 +16,7 @@
 %% Start the supervisor for the application
 %
 start_link() ->
+  guarded_messenger:start_link(),
   supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 %
