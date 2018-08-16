@@ -22,15 +22,24 @@ s.onopen = function() {
 };
 
 s.onclose = function() {
-  newMessage('server error', 'diconnected from server');
+  newMessage('server error', 'disconnected from server');
 };
 
 s.onmessage = function(m) {
-  newMessage('partner', m.data);
+  var sender = m.data.substr(0, m.data.indexOf(':'));
+  if(sender == 'server') {
+    newMessage('server', m.data.substring(sender.length + 1));
+  } else if(sender == 'uid') {
+    var uid = m.data.substring(4);
+    newMessage('server', 'your id is: ' + uid);
+  } else {
+    newMessage('partner', m.data);
+  }
 };
 
 // Listen for click event
 btn_send.onclick = function() {
   s.send(inp_message.value);
+  newMessage('me', inp_message.value);
   inp_message.value = '';
 };
