@@ -11,7 +11,8 @@ var el_history = e('message-history'),
 
 // Chat functions
 function newMessage(type, content) {
-  el_history.innerHTML += '<div class="message ' + type + '">' + content + '</div>';
+  console.log(content);
+  el_history.innerHTML += "<div class=\"message " + type + "\">" + content + "</div>";
 }
 
 // Initialize websocket connection
@@ -35,11 +36,16 @@ s.onmessage = function(m) {
   } else {
     newMessage('partner', m.data);
   }
+  el_history.scrollTo(0, el_history.scrollHeight);
 };
 
 // Listen for click event
 btn_send.onclick = function() {
-  s.send(inp_message.value);
-  newMessage('me', inp_message.value);
+  var m = inp_message.value;
+  m = m.replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;");
+  s.send(m);
+  newMessage('me', m);
   inp_message.value = '';
 };

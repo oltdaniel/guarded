@@ -1,6 +1,6 @@
 # guarded :lock:
 
-visualize a guarded messaging protocol
+visualize a secure messaging protocol
 
 ## About
 
@@ -14,7 +14,10 @@ decrypt your messages.
 
 ## Protocol
 
-###### Will be written
+In order to secure the messaging protocol from external attackers _(this excludes the attack of the server owner)_, a Diffie-Hellman Key Exchange will be executed before any further messages will be send. The public parameters will be calculated by the client itself to allow full flexibility in the number selection. When this process finished, a secure tunnel has been established between the client and server, so on, an attack from the outside of this chain is not possible.
+
+
+Privacy is another aspect this protocol will take care of, by using the RSA algorithm to encrypt and decrypt the messages between the users. This will allow the users to communicate privately, but not completely anonymous as the server owner can log the amount of messages sent from one specific user to another _(however, this is not the goal of this project)_.
 
 ## Documentation
 
