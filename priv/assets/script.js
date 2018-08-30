@@ -5,6 +5,7 @@ function e(id) {
   return document.getElementById(id);
 }
 
+// Global basic elements
 var el_history = e('message-history'),
     inp_message = e('message-content'),
     btn_send = e('message-send'),
@@ -12,9 +13,25 @@ var el_history = e('message-history'),
     partnerUid = '',
     keys = {};
 
-// Chat functions
+// Element functions
 function newMessage(type, content) {
   el_history.innerHTML += "<div class=\"message " + type + "\">" + content + "</div>";
+}
+
+function explain(type, values) {
+  var m = '';
+  switch (type) {
+    case 'rsa-init':
+      m += "<h2>RSA init</h2>";
+      m += "<p>RSA init</p>";
+      break;
+    case 'rsa-encrypt':
+      m += "<h2>RSA encrypt message</h2>";
+      m += "<p>RSA encrypt message</p>";
+      break;
+  }
+  var i = Math.random();
+  document.body.innerHTML += "<modal id=\"m-" + i + "\"><div>" + m + "<close onclick=\"e(\'m-" + i + "\').remove()\">close</close></div></modal>";
 }
 
 // From https://en.wikipedia.org/w/index.php?title=Euclidean_algorithm&oldid=855705350
@@ -43,24 +60,28 @@ function powermod(b, e, m){
 }
 
 // Optimized with extended Euclidean algorithm https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
+// Is equal to `t = a^-1 mod n`
+// https://rosettacode.org/wiki/Modular_inverse#C
 function modinverse(a, n) {
-  var t = 0, newt = 1, r = n, newr = a;
-  while(newr > 0) {
-    var q = Math.floor(r / newr);
-    newtt = newt;
-    newt = t - q * newt;
-    t = newtt;
-    newrr = newr;
-    newr = r - q * newr;
-    r = newr;
+  var n0 = n, t, q;
+  var x0 = 0, x1 = 1;
+  if(n == 1) return 1;
+  while(a > 1) {
+    q = Math.floor(a / n);
+    t = n;
+    n = a % n;
+    a = t;
+    t = x0;
+    x0 = x1 - q * x0;
+    x1 = t;
   }
-  if(t < 0) t+= n;
-  return t;
+  while(x1 < 0) x1 += n0;
+  return x1;
 }
 
 // Optimized with https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
 function isPrime(num) {
-  return powermod(3, num - 1, num) === 1;
+  return powermod(3, num - 1, num) == 1;
 }
 
 function generatePrime(len) {
@@ -70,45 +91,51 @@ function generatePrime(len) {
 }
 
 // RSA toolbox
-function RSA(len) {
+function RSA(len, c = 0) {
   var p = generatePrime(len),
       q = generatePrime(len),
       n = p * q,
       phi = (p - 1) * (q - 1),
-      e = generatePrime(len),
-      d = modinverse(e, phi);
+      e = generatePrime(len);
 
-  if(gcd(d, phi) != 1) {
-    location.reload();
+  while(e > phi) e = generatePrime(len);
+  if(gcd(e, phi) != 1) {
+    if(c > 5) alert('Cannot find any number');
+    return new RSA(len, c + 1);
   }
-
-  this.private = d;
+  while(gcd(e * modinverse(e, phi), phi) != 1) {
+    e = generatePrime(len);
+  }
+  this.private = d = modinverse(e, phi);
   this.public = e;
   this.n = n;
+
+  newMessage('info', "generated RSA key <i class=\"info-btn\" onclick=\"explain(\'rsa-init\', [" + p + "," + q + "," + n +"," + phi + "," + e + "," + d +"])\">(info)</i>");
 }
 
 RSA.prototype.encrypt = function(msg) {
   var r = this;
   return msg.split('').map(function(c) {
-    return String.fromCharCode(powermod(c.charCodeAt(0), r.public, r.n));
-  }).join('');
+    return (powermod(c.charCodeAt(0), r.public, r.n));
+  }).join('.');
 }
 
 RSA.prototype.decrypt = function(msg) {
   var r = this;
-  return msg.split('').map(function(c) {
-    return String.fromCharCode(powermod(c.charCodeAt(0), r.private, r.n));
+  return msg.split('.').map(function(c) {
+    return String.fromCharCode(powermod(parseInt(c), r.private, r.n));
   }).join('');
 }
 
 function uidEncrypt(key, msg) {
+  newMessage('info', "encrypt with partner key <i class=\"info-btn\" onclick=\"explain(\'rsa-encrypt\', [" + key['k'] + "," + key['n'] + "])\">(info)</i>");
   return msg.split('').map(function(c) {
-    return String.fromCharCode(powermod(c.charCodeAt(0), key['k'], key['n']));
-  }).join('');
+    return (powermod(c.charCodeAt(0), key['k'], key['n']));
+  }).join('.');
 }
 
 // Initialize rsa key
-var r = new RSA(2);
+var r = new RSA(4);
 
 // Initialize websocket connection
 var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port + '/ws');
@@ -119,18 +146,16 @@ function parseMessage(msg) {
   switch (cmd) {
     case '/p':
       s.send('/p ' + (uidEncrypt(keys[partnerUid], msg.substring(2).trim())));
-      break;
+      return;
     case '/o':
       partnerUid = msg.substring(2).trim();
       s.send(msg);
       if(keys[partnerUid] === undefined) {
         s.send('/kr ' + partnerUid);
       }
-      break;
-    default:
-      newMessage('server', 'unknown command');
-      break;
+      return;
   }
+  newMessage('server', 'unknown command');
 }
 
 s.onopen = function() {
@@ -175,7 +200,7 @@ btn_send.onclick = function() {
   m = m.replace(/&/g, "&amp;")
        .replace(/</g, "&lt;")
        .replace(/>/g, "&gt;");
-  parseMessage(m);
   newMessage('me', m);
+  parseMessage(m);
   inp_message.value = '';
 };
