@@ -2,9 +2,9 @@
 %% Define module properties
 %
 -module(guarded_ws_handler).
--behaviour(cowboy_http_websocket_handler).
+% -behaviour(cowboy_http_websocket_handler).
 
--record(state, {uid, receiver_uid}).
+-record(state, {uid, receiver_uid, public_key}).
 
 %
 %% Make functions public
@@ -17,7 +17,7 @@
 %
 %% Entry function for a new socket
 %
-init(Req, Opts) ->
+init(Req, _Opts) ->
   Uid = generate_uid(),
   {cowboy_websocket, Req, #state{uid=Uid}, #{timeout=>120000}}.
 
@@ -39,11 +39,20 @@ websocket_handle({text, <<"/p ", Msg/binary>>}, State) ->
   {ok, State};
 
 websocket_handle({text, <<"/o ", Msg/binary>>}, State) ->
-  ReceiverUid = Msg,
-  Uid = State#state.uid,
   State2 = State#state{receiver_uid = Msg},
-  guarded_messenger:message(Uid, ReceiverUid, <<"Hello, I joined you">>),
   {reply, {text, <<"server:speaking to ", Msg/binary>>}, State2};
+
+websocket_handle({text, <<"/k ", Msg/binary>>}, State) ->
+  State2 = State#state{public_key = Msg},
+  {ok, State2};
+
+websocket_handle({text, <<"/kr ", Msg/binary>>}, State) ->
+  Uid = State#state.uid,
+  guarded_messenger:key_request(Uid, Msg),
+  {ok, State};
+
+websocket_handle({text, <<"ping", _Msg/binary>>}, State) ->
+  {ok, State};
 
 websocket_handle({text, _Msg}, State) ->
   {reply, {text, <<"server:I do not understand your message">>}, State};
@@ -59,6 +68,15 @@ websocket_handle(_Data, State) ->
 %
 websocket_info({message, Uid, Msg}, State) ->
   {reply, {text, << Uid/binary, ": ", Msg/binary >>}, State};
+
+%
+%% Handle RSA public key request
+%
+websocket_info({key_request,  ReceiverUid}, State) ->
+  Uid = State#state.uid,
+  PublicKey = State#state.public_key,
+  guarded_messenger:message(<<"key">>, ReceiverUid, << Uid/binary, " ", PublicKey/binary >>),
+  {ok, State};
 
 %
 %% Handle other info messages

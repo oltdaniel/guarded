@@ -7,7 +7,7 @@
 %
 %% Make functions public
 %
--export([start_link/0, connect/2, disconnect/1, message/3]).
+-export([start_link/0, connect/2, disconnect/1, message/3, key_request/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
 %
@@ -21,6 +21,9 @@ disconnect(Uid) ->
 
 message(Uid, ReceiverUid, Msg) ->
   gen_server:cast(?MODULE, {message, Uid, ReceiverUid, Msg}).
+
+key_request(Uid, PartnerUid) ->
+  gen_server:cast(?MODULE, {key_request, Uid, PartnerUid}).
 
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -44,6 +47,16 @@ handle_cast({message, Uid, ReceiverUid, Msg}, Users) ->
   case UserTemp of
     {ok, [User|_]} ->
       User ! {message, Uid, Msg};
+    _ ->
+      ok
+  end,
+  {noreply, Users};
+
+handle_cast({key_request, Uid, PartnerUid}, Users) ->
+  UserTemp = dict:find(PartnerUid, Users),
+  case UserTemp of
+    {ok, [User|_]} ->
+      User ! {key_request, Uid};
     _ ->
       ok
   end,
