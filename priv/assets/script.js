@@ -16,6 +16,7 @@ var el_history = e('message-history'),
 // Element functions
 function newMessage(type, content) {
   el_history.innerHTML += "<div class=\"message " + type + "\">" + content + "</div>";
+  el_history.scrollTo(0, el_history.scrollHeight);
 }
 
 function explain(type, values) {
@@ -33,6 +34,17 @@ function explain(type, values) {
   var i = Math.random();
   document.body.innerHTML += "<modal id=\"m-" + i + "\"><div>" + m + "<close onclick=\"e(\'m-" + i + "\').remove()\">close</close></div></modal>";
 }
+
+String.prototype.hashCode = function(n) {
+  var hash = 0, i, chr;
+  if (this.length === 0) return hash;
+  for (i = 0; i < this.length; i++) {
+    chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash % n; // Keep number low (high collision rate though)
+};
 
 // From https://en.wikipedia.org/w/index.php?title=Euclidean_algorithm&oldid=855705350
 function gcd(a, b) {
@@ -115,6 +127,7 @@ function RSA(len, c = 0) {
 
 RSA.prototype.encrypt = function(msg) {
   var r = this;
+  msg = window.btoa(msg);
   return msg.split('').map(function(c) {
     return (powermod(c.charCodeAt(0), r.public, r.n));
   }).join('.');
@@ -122,16 +135,28 @@ RSA.prototype.encrypt = function(msg) {
 
 RSA.prototype.decrypt = function(msg) {
   var r = this;
-  return msg.split('.').map(function(c) {
+  var d = msg.split('.').map(function(c) {
     return String.fromCharCode(powermod(parseInt(c), r.private, r.n));
   }).join('');
+  return window.atob(d);
 }
+
+RSA.prototype.sign = function(msg) {
+  var r = this;
+  return (powermod(msg.hashCode(r.n), this.private, this.n));
+};
 
 function uidEncrypt(key, msg) {
   newMessage('info', "encrypt with partner key <i class=\"info-btn\" onclick=\"explain(\'rsa-encrypt\', [" + key['k'] + "," + key['n'] + "])\">(info)</i>");
+  msg = window.btoa(msg);
   return msg.split('').map(function(c) {
     return (powermod(c.charCodeAt(0), key['k'], key['n']));
   }).join('.');
+}
+
+function uidVerify(key, msg, signature) {
+  newMessage('info', "verify partner message signature");
+  return (powermod(parseInt(signature), key['k'], key['n'])) == msg.hashCode(key['n']);
 }
 
 // Initialize rsa key
@@ -145,7 +170,8 @@ function parseMessage(msg) {
   var cmd = msg.substr(0, 2);
   switch (cmd) {
     case '/p':
-      s.send('/p ' + (uidEncrypt(keys[partnerUid], msg.substring(2).trim())));
+      var encrypted = uidEncrypt(keys[partnerUid], msg.substring(2).trim());
+      s.send('/p ' + encrypted + ' ' + r.sign(encrypted));
       return;
     case '/o':
       partnerUid = msg.substring(2).trim();
@@ -189,9 +215,22 @@ s.onmessage = function(m) {
     newMessage('server', 'received key from ' + partnerUid);
   } else {
     var v = m.data.split(' ');
-    newMessage('partner', v[0] + ' ' + r.decrypt(v[1]));
+    if(keys[sender] === undefined) {
+      s.send('/kr ' + sender);
+    }
+    var wairForKeyLoop = function() {
+      if(keys[sender] === undefined) {
+        setTimeout(wairForKeyLoop, 500);
+        return;
+      }
+      if(uidVerify(keys[sender], v[1], v[2])) {
+        newMessage('partner', v[0] + ' ' + r.decrypt(v[1]));
+      } else {
+        newMessage('server error', 'received signature is incorrect');
+      }
+    };
+    wairForKeyLoop();
   }
-  el_history.scrollTo(0, el_history.scrollHeight);
 };
 
 // Listen for click event
