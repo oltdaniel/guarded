@@ -170,8 +170,9 @@ function parseMessage(msg) {
   var cmd = msg.substr(0, 2);
   switch (cmd) {
     case '/p':
-      var encrypted = uidEncrypt(keys[partnerUid], msg.substring(2).trim());
-      s.send('/p ' + encrypted + ' ' + r.sign(encrypted));
+      msg = uid + ': ' + msg.substring(2).trim();
+      var encrypted = uidEncrypt(keys[partnerUid], r.sign(msg) + '#' + msg);
+      s.send('/p ' + encrypted);
       return;
     case '/o':
       partnerUid = msg.substring(2).trim();
@@ -223,8 +224,11 @@ s.onmessage = function(m) {
         setTimeout(wairForKeyLoop, 500);
         return;
       }
-      if(uidVerify(keys[sender], v[1], v[2])) {
-        newMessage('partner', v[0] + ' ' + r.decrypt(v[1]));
+      var decrypted = r.decrypt(v[1]),
+          signature = decrypted.split('#')[0],
+          message =  decrypted.substring(signature.length + 1);
+      if(uidVerify(keys[sender], message, signature)) {
+        newMessage('partner', message);
       } else {
         newMessage('server error', 'received signature is incorrect');
       }
