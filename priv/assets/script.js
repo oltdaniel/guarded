@@ -11,7 +11,8 @@ var el_history = e('message-history'),
     btn_send = e('message-send'),
     uid = '',
     partnerUid = '',
-    keys = {};
+    keys = {},
+    shared_key = '';
 
 // Element functions
 function newMessage(type, content) {
@@ -96,10 +97,19 @@ function isPrime(num) {
   return powermod(3, num - 1, num) == 1;
 }
 
+function randomNumber(len = 2) {
+  return Math.floor(Math.pow(10, len) * Math.random());
+}
+
 function generatePrime(len) {
-  var num =  Math.floor(Math.pow(10, len) * Math.random());
+  var num =  randomNumber(len);
   while(!isPrime(num)) num++;
   return num;
+}
+
+function randomString(len) {
+  var s = "0123456789abcdef";
+  return Array(len).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
 }
 
 // RSA toolbox
@@ -166,20 +176,36 @@ var r = new RSA(4);
 var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port + '/ws');
 
 // Message functions
+function sendMessage(msg) {
+  var iivec = randomString(16);
+  var ivec = new Uint8Array(iivec.split('').map(function(c) { return c.charCodeAt(0); }));
+  var aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(shared_key), new aesjs.Counter(ivec));
+  var bytes = new Uint8Array(msg.split('').map(function(c) { return c.charCodeAt(0); }));
+  var d = String.fromCharCode.apply(null, aes.encrypt(bytes));
+  d = window.btoa(String.fromCharCode.apply(null, ivec) + d);
+  s.send(d);
+}
+
 function parseMessage(msg) {
   var cmd = msg.substr(0, 2);
   switch (cmd) {
     case '/p':
       msg = uid + ': ' + msg.substring(2).trim();
       var encrypted = uidEncrypt(keys[partnerUid], r.sign(msg) + '#' + msg);
-      s.send('/p ' + encrypted);
+      sendMessage('/p ' + encrypted);
       return;
     case '/o':
       partnerUid = msg.substring(2).trim();
-      s.send(msg);
+      sendMessage(msg);
       if(keys[partnerUid] === undefined) {
-        s.send('/kr ' + partnerUid);
+        sendMessage('/kr ' + partnerUid);
       }
+      return;
+    case '/s':
+      sendMessage(msg);
+      return;
+    default:
+      sendMessage(msg);
       return;
   }
   newMessage('server', 'unknown command');
@@ -187,7 +213,6 @@ function parseMessage(msg) {
 
 s.onopen = function() {
   newMessage('server', 'connected to server');
-  s.send('/k ' + r.n + ' ' + r.public);
   var ping = function() {
     s.send('ping');
     setTimeout(ping, 5000);
@@ -199,29 +224,49 @@ s.onclose = function() {
   newMessage('server error', 'disconnected from server');
 };
 
-s.onmessage = function(m) {
-  console.log(m);
-  var sender = m.data.substr(0, m.data.indexOf(':'));
+s.onmessage = function onmessage(m) {
+  if(m.data) {
+    if(m.data.substr(0, m.data.indexOf(':')) == 'shared') {
+      m = m.data.substr(7).split(' ');
+      var shared = parseInt(m[0]),
+          prime = parseInt(m[1]),
+          generator = parseInt(m[2]),
+          secret = randomNumber(5);
+      shared_key = sha256(powermod(shared, secret, prime).toString(16).toUpperCase());
+      s.send('/d ' + powermod(generator, secret, prime));
+      newMessage('info', 'shared key initialized <i class=\"info-btn\" onclick=\"explain(\'shared-init\',[\'' + shared_key + '\'])">(info)</i>');
+      newMessage('info', 'public key published');
+      sendMessage('/k ' + r.n + ' ' + r.public);
+      return;
+    }
+    var m = window.atob(m.data);
+    var bytes = new Uint8Array(m.substring(16).split('').map(function(c) {return c.charCodeAt(0)}));
+    var ivec = m.substr(0,16).split('').map(function(c){return c.charCodeAt(0)});
+    var aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(shared_key), new aesjs.Counter(ivec));
+    var d = aesjs.utils.utf8.fromBytes(aes.decrypt(bytes));
+    return onmessage(d.toString());
+  }
+  var sender = m.substr(0, m.indexOf(':'));
   if(sender == 'server') {
-    newMessage('server', m.data.substring(sender.length + 1));
+    newMessage('server', m.substring(sender.length + 1));
   } else if(sender == 'uid') {
-    uid = m.data.substring(4);
+    uid = m.substring(4);
     newMessage('server', 'your id is: ' + uid);
   } else if(sender == 'key') {
-    var v = m.data.split(' ');
+    var v = m.split(' ');
     var partnerUid = v[1],
         n = parseInt(v[2]),
         key = parseInt(v[3]);
     keys[partnerUid] = {'k': key, 'n': n};
     newMessage('server', 'received key from ' + partnerUid);
   } else {
-    var v = m.data.split(' ');
+    var v = m.split(' ');
     if(keys[sender] === undefined) {
-      s.send('/kr ' + sender);
+      sendMessage('/kr ' + sender);
     }
-    var wairForKeyLoop = function() {
+    var waitForKeyLoop = function() {
       if(keys[sender] === undefined) {
-        setTimeout(wairForKeyLoop, 500);
+        setTimeout(waitForKeyLoop, 500);
         return;
       }
       var decrypted = r.decrypt(v[1]),
@@ -233,7 +278,7 @@ s.onmessage = function(m) {
         newMessage('server error', 'received signature is incorrect');
       }
     };
-    wairForKeyLoop();
+    waitForKeyLoop();
   }
 };
 
