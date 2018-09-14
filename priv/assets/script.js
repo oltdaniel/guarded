@@ -6,18 +6,20 @@
 
 // Get modal template from body base on type
 function getExplanation(type) {
-  return '<h1>Hello World</h1>';
+  return document.getElementById('m-' + type).innerHTML;
 }
 
 // Construct an modal and display it to the screen
 function explain(type, values) {
   var modalContent = getExplanation(type);
-  // Insert values
+  for(var i = 0; i < values.length; i++) {
+    modalContent = modalContent.replace(new RegExp('\{' + values[i] + '\}', 'g'), values[++i]);
+  }
   var modalId = 'm-' + Math.random();
   document.body.innerHTML += '<modal id="' + modalId + '">' +
     '<div>' +
     modalContent +
-    '<close onclick="document.getElementById(\'' + modalId + '\')">' +
+    '<close onclick="document.getElementById(\'' + modalId + '\').remove()">' +
     'close' +
     '</close>' +
     '</div>' +
@@ -42,6 +44,13 @@ String.prototype.hashCode = function(n) {
   }
   return hash % n;
 }
+
+// String replace all shortcut
+// Based on https://stackoverflow.com/a/17606289
+String.prototype.replaceAll = function(search, replacement) {
+  var target = this;
+  return target.replace(new RegExp(search, 'g'), replacement);
+};
 
 // Construct an ASCII uint8array from a string
 // NOTE: Use this to prevent the use of utf8
@@ -151,7 +160,12 @@ function RSA(len, c = 0) {
   this.public = e;
   this.n = n;
 
-  newMessage('info', "generated RSA key <i class=\"info-btn\" onclick=\"explain(\'rsa-init\', [" + p + "," + q + "," + n +"," + phi + "," + e + "," + d +"])\">(info)</i>");
+  newMessage('info', "generated RSA key " +
+    "<i class=\"info-btn\" onclick=\"" +
+      "explain(\'rsa-init\', " +
+      "[\'p\', " + p + ", \'q\'," + q + ", \'n\'," + n +", \'phi\'," + phi + ", \'e\'," + e + ", \'d\'," + d +"]" +
+      ")\">" +
+    "(info)</i>");
 }
 
 // Extend RSA prototype with encrypt function
@@ -205,7 +219,12 @@ var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location
 
 // Encrypt a message for another user
 function uidEncrypt(key, msg) {
-  newMessage('info', "encrypt with partner key <i class=\"info-btn\" onclick=\"explain(\'rsa-encrypt\', [" + key['k'] + "," + key['n'] + "])\">(info)</i>");
+  newMessage('info', "encrypt with partner key " +
+  "<i class=\"info-btn\" onclick=\"" +
+    "explain(\'rsa-encrypt\', " +
+    "[\'k\', " + key['k'] + ", \'n\'" + key['n'] + "]" +
+    ")\">" +
+  "(info)</i>");
   msg = window.btoa(msg);
   return msg.split('').map(function(c) {
     return (powermod(c.charCodeAt(0), key['k'], key['n']));
@@ -214,7 +233,12 @@ function uidEncrypt(key, msg) {
 
 // Verify signature of another user
 function uidVerify(key, msg, signature) {
-  newMessage('info', "verify partner message signature");
+  newMessage('info', "verify partner message signature " +
+  "<i class=\"info-btn\" onclick=\"" +
+    "explain(\'rsa-verify\', " +
+    "[\'k\', " + key['k'] + ", \'n\', " + key['n'] + ", \'s\', " + signature + ", \'m\', " + msg + "]" +
+    ")\">" +
+  "(info)</i>");
   return (powermod(parseInt(signature), key['k'], key['n']) === msg.hashCode(key['n']));
 }
 
@@ -257,7 +281,7 @@ function parseCommand(msg) {
       partnerUid = msg.substring(2).trim();
       sendMessage('/o ' + partnerUid);
       if(keys[partnerUid] === undefined) {
-        newMessage('info', 'requesting key from partner');
+        newMessage('server', 'requesting key from partner');
         sendMessage('/kr ' + partnerUid);
       }
       break;
@@ -310,9 +334,20 @@ s.onmessage = function onmessage(m) {
         sharedKeyTemp = powermod(serverPart, secret, publicPrime).toString(16).toUpperCase();
     sharedKey = sha256(sharedKeyTemp);
     s.send('/d ' + sharedKeyMyPart);
-    newMessage('info', 'shared key initialized');
+    newMessage('info', "shared key parameters received " +
+    "<i class=\"info-btn\" onclick=\"" +
+      "explain(\'diffie-init\', " +
+      "[\'sp\', " + serverPart + ", \'p\', " + publicPrime + ", \'g\', " + publicGenerator + "]" +
+      ")\">" +
+    "(info)</i>");
+    newMessage('info', "shared key initialized " +
+    "<i class=\"info-btn\" onclick=\"" +
+      "explain(\'diffie-finish\', " +
+      "[\'k\', \'" + sharedKey + "\', \'sp\', " + serverPart + ", \'p\', " + publicPrime + ", \'g\', " + publicGenerator + ", \'s\', " + secret + ", \'mp\', " + sharedKeyMyPart + "]" +
+      ")\">" +
+    "(info)</i>");
     sendMessage('/k ' + r.n + ' ' + r.public);
-    newMessage('info', 'public key published');
+    newMessage('server', 'public key published');
     return;
   } else if(m.data) {
     var decodedMessage = window.atob(m.data),

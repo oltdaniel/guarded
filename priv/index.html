@@ -20,6 +20,30 @@
     </div>
   </body>
 
+  <template id="m-rsa-init">
+    {p} {q} {n} {phi} {e} {d}
+  </template>
+  <template id="m-rsa-encrypt">
+    {k} {n}
+  </template>
+  <template id="m-rsa-decrypt">
+  </template>
+  <template id="m-rsa-sign">
+  </template>
+  <template id="m-rsa-verify">
+    {k} {n} {s} {m}
+  </template>
+  <template id="m-diffie-init">
+    {sp}  {p} {g}
+  </template>
+  <template id="m-diffie-finish">
+    {k} {sp} {p} {g} {s} {mp}
+  </template>
+  <template id="m-diffie-encrypt">
+  </template>
+  <template id="m-diffie-decrypt">
+  </template>
+
   <script type="text/javascript" src="/assets/aes.min.js"></script>
   <script type="text/javascript" src="/assets/sha256.min.js"></script>
   <script type="text/javascript" src="/assets/script.js"></script>
