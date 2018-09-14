@@ -1,53 +1,63 @@
 /* Copyright 2018, Daniel Oltmanns (https://github.com/oltdaniel) */
 
-// General helper functions
-function e(id) {
-  return document.getElementById(id);
+/**
+ * Handle explanation boxes
+ */
+
+// Get modal template from body base on type
+function getExplanation(type) {
+  return '<h1>Hello World</h1>';
 }
 
-// Global basic elements
-var el_history = e('message-history'),
-    inp_message = e('message-content'),
-    btn_send = e('message-send'),
-    uid = '',
-    partnerUid = '',
-    keys = {},
-    shared_key = '';
-
-// Element functions
-function newMessage(type, content) {
-  el_history.innerHTML += "<div class=\"message " + type + "\">" + content + "</div>";
-  el_history.scrollTo(0, el_history.scrollHeight);
-}
-
+// Construct an modal and display it to the screen
 function explain(type, values) {
-  var m = '';
-  switch (type) {
-    case 'rsa-init':
-      m += "<h2>RSA init</h2>";
-      m += "<p>RSA init</p>";
-      break;
-    case 'rsa-encrypt':
-      m += "<h2>RSA encrypt message</h2>";
-      m += "<p>RSA encrypt message</p>";
-      break;
-  }
-  var i = Math.random();
-  document.body.innerHTML += "<modal id=\"m-" + i + "\"><div>" + m + "<close onclick=\"e(\'m-" + i + "\').remove()\">close</close></div></modal>";
+  var modalContent = getExplanation(type);
+  // Insert values
+  var modalId = 'm-' + Math.random();
+  document.body.innerHTML += '<modal id="' + modalId + '">' +
+    '<div>' +
+    modalContent +
+    '<close onclick="document.getElementById(\'' + modalId + '\')">' +
+    'close' +
+    '</close>' +
+    '</div>' +
+    '</modal>';
 }
 
+/**
+ * Extend default prototypes
+ */
+
+// Add hashCode function to String to generate
+// an unique hash for a specific string
+// NOTE: High collision due to modular step at the end
+//       to keep number low for less computation
 String.prototype.hashCode = function(n) {
   var hash = 0, i, chr;
   if (this.length === 0) return hash;
   for (i = 0; i < this.length; i++) {
     chr   = this.charCodeAt(i);
     hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
+    hash |= 0;
   }
-  return hash % n; // Keep number low (high collision rate though)
-};
+  return hash % n;
+}
 
-// From https://en.wikipedia.org/w/index.php?title=Euclidean_algorithm&oldid=855705350
+// Construct an ASCII uint8array from a string
+// NOTE: Use this to prevent the use of utf8
+function toAsciiArray(s) {
+  var bytes = s.split('').map(function(c) {
+    return c.charCodeAt(0);
+  });
+  return new Uint8Array(bytes);
+}
+
+/**
+ * Mathematical functions
+ */
+
+// Euclidean algorithm
+// Based on https://en.wikipedia.org/w/index.php?title=Euclidean_algorithm&oldid=855705350
 function gcd(a, b) {
   while(b > 0) {
     var t = b;
@@ -57,8 +67,8 @@ function gcd(a, b) {
   return a;
 }
 
-// Optimized with https://en.wikipedia.org/w/index.php?title=Modular_exponentiation&oldid=857101936
-// Is equal to `Math.pow(b, e) % m`
+// `Math.pow(b, e) % m` optimized for large numbers
+// Based on https://en.wikipedia.org/w/index.php?title=Modular_exponentiation&oldid=857101936
 function powermod(b, e, m){
   var r = 1,
       b = b % m;
@@ -72,9 +82,10 @@ function powermod(b, e, m){
   return r;
 }
 
-// Optimized with extended Euclidean algorithm https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
-// Is equal to `t = a^-1 mod n`
-// https://rosettacode.org/wiki/Modular_inverse#C
+// Extended Euclidean Algorithm to calculate
+// `a^-q mod n`
+// Based on https://rosettacode.org/wiki/Modular_inverse#C
+// Based on https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
 function modinverse(a, n) {
   var n0 = n, t, q;
   var x0 = 0, x1 = 1;
@@ -92,27 +103,35 @@ function modinverse(a, n) {
   return x1;
 }
 
-// Optimized with https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
+// Prime check with Extended Euclidean Algorithm
+// Based on https://en.wikipedia.org/w/index.php?title=Extended_Euclidean_algorithm&oldid=853933038
 function isPrime(num) {
   return powermod(3, num - 1, num) == 1;
 }
 
-function randomNumber(len = 2) {
+// Generate a number with x digits
+function randomNumber(len) {
   return Math.floor(Math.pow(10, len) * Math.random());
 }
 
+// Generate a prime with at least x digits
 function generatePrime(len) {
   var num =  randomNumber(len);
   while(!isPrime(num)) num++;
   return num;
 }
 
+// Generate a random alphanumeric string with x characters
 function randomString(len) {
-  var s = "0123456789abcdef";
+  var s = "0123456789abcdefghijklmnopqrstuvwxyz";
   return Array(len).join().split(',').map(function() { return s.charAt(Math.floor(Math.random() * s.length)); }).join('');
 }
 
-// RSA toolbox
+/**
+ * Implement RSA
+ */
+
+// Specify main constructor for new RSA instance
 function RSA(len, c = 0) {
   var p = generatePrime(len),
       q = generatePrime(len),
@@ -135,6 +154,7 @@ function RSA(len, c = 0) {
   newMessage('info', "generated RSA key <i class=\"info-btn\" onclick=\"explain(\'rsa-init\', [" + p + "," + q + "," + n +"," + phi + "," + e + "," + d +"])\">(info)</i>");
 }
 
+// Extend RSA prototype with encrypt function
 RSA.prototype.encrypt = function(msg) {
   var r = this;
   msg = window.btoa(msg);
@@ -143,6 +163,7 @@ RSA.prototype.encrypt = function(msg) {
   }).join('.');
 }
 
+// Extend RSA prototype with decrypt function
 RSA.prototype.decrypt = function(msg) {
   var r = this;
   var d = msg.split('.').map(function(c) {
@@ -151,11 +172,38 @@ RSA.prototype.decrypt = function(msg) {
   return window.atob(d);
 }
 
+// Extend RSA prototype with sign function
 RSA.prototype.sign = function(msg) {
   var r = this;
   return (powermod(msg.hashCode(r.n), this.private, this.n));
 };
 
+/**
+ * Global variables
+ */
+
+// Global element variables
+var elHistory = document.getElementById('message-history'),
+    inpMessage = document.getElementById('message-content'),
+    btnSend = document.getElementById('message-send');
+
+// Global protocol variables
+var uid = '',
+    partnerUid = '',
+    keys = {},
+    sharedKey = null;
+
+// Global encryption varliables
+var r = new RSA(4);
+
+// Global connection varliables
+var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port + '/ws');
+
+/**
+ * Extend RSA with external encryption functions
+ */
+
+// Encrypt a message for another user
 function uidEncrypt(key, msg) {
   newMessage('info', "encrypt with partner key <i class=\"info-btn\" onclick=\"explain(\'rsa-encrypt\', [" + key['k'] + "," + key['n'] + "])\">(info)</i>");
   msg = window.btoa(msg);
@@ -164,53 +212,74 @@ function uidEncrypt(key, msg) {
   }).join('.');
 }
 
+// Verify signature of another user
 function uidVerify(key, msg, signature) {
   newMessage('info', "verify partner message signature");
-  return (powermod(parseInt(signature), key['k'], key['n'])) == msg.hashCode(key['n']);
+  return (powermod(parseInt(signature), key['k'], key['n']) === msg.hashCode(key['n']));
 }
 
-// Initialize rsa key
-var r = new RSA(4);
+/**
+ * Simplify client functions
+ */
 
-// Initialize websocket connection
-var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location.port + '/ws');
+// Add new message to the history
+function newMessage(type, content) {
+  elHistory.innerHTML += '<div class="message ' + type + '">' +
+    content +
+    '</div>';
+  elHistory.scrollTo(0, elHistory.scrollHeight);
+}
 
-// Message functions
+// Simplify send message function
 function sendMessage(msg) {
-  var iivec = randomString(16);
-  var ivec = new Uint8Array(iivec.split('').map(function(c) { return c.charCodeAt(0); }));
-  var aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(shared_key), new aesjs.Counter(ivec));
-  var bytes = new Uint8Array(msg.split('').map(function(c) { return c.charCodeAt(0); }));
-  var d = String.fromCharCode.apply(null, aes.encrypt(bytes));
-  d = window.btoa(String.fromCharCode.apply(null, ivec) + d);
-  s.send(d);
+  var ivec = toAsciiArray(randomString(16)),
+      aesCounter = new aesjs.Counter(ivec),
+      aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(sharedKey), aesCounter),
+      msgBytes = toAsciiArray(msg),
+      encryptedMsgBytes = aes.encrypt(msgBytes),
+      encryptedMsg = String.fromCharCode.apply(null, encryptedMsgBytes),
+      encodedEncryptedMessage = window.btoa(String.fromCharCode.apply(null, ivec) + encryptedMsg);
+  s.send(encodedEncryptedMessage);
 }
 
-function parseMessage(msg) {
-  var cmd = msg.substr(0, 2);
-  switch (cmd) {
+// Simplify client command parsing
+function parseCommand(msg) {
+  var command = msg.substr(0, 2);
+  switch (command) {
     case '/p':
       msg = uid + ': ' + msg.substring(2).trim();
-      var encrypted = uidEncrypt(keys[partnerUid], r.sign(msg) + '#' + msg);
-      sendMessage('/p ' + encrypted);
-      return;
+      var signedMessage = r.sign(msg) + '#' + msg,
+          partnerKey = keys[partnerUid],
+          encryptedMsg = uidEncrypt(partnerKey, signedMessage);
+      sendMessage('/p ' + encryptedMsg);
+      break;
     case '/o':
       partnerUid = msg.substring(2).trim();
-      sendMessage(msg);
+      sendMessage('/o ' + partnerUid);
       if(keys[partnerUid] === undefined) {
+        newMessage('info', 'requesting key from partner');
         sendMessage('/kr ' + partnerUid);
       }
-      return;
+      break;
     case '/s':
-      sendMessage(msg);
-      return;
+      sendMessage('/s');
+      break;
     default:
-      sendMessage(msg);
-      return;
+      newMessage('server', 'unknown command');
+      break;
   }
-  newMessage('server', 'unknown command');
 }
 
+// Extract sender from message
+function deriveSender(msg) {
+  return msg.substr(0, msg.indexOf(':'));
+}
+
+/**
+ * Handle client events
+ */
+
+// Handle connect event to server
 s.onopen = function() {
   newMessage('server', 'connected to server');
   var ping = function() {
@@ -220,75 +289,106 @@ s.onopen = function() {
   ping();
 };
 
+// Handle disconnect event
 s.onclose = function() {
   newMessage('server error', 'disconnected from server');
 };
 
+// Handle new message from the server
 s.onmessage = function onmessage(m) {
-  if(m.data) {
-    if(m.data.substr(0, m.data.indexOf(':')) == 'shared') {
-      m = m.data.substr(7).split(' ');
-      var shared = parseInt(m[0]),
-          prime = parseInt(m[1]),
-          generator = parseInt(m[2]),
-          secret = randomNumber(5);
-      shared_key = sha256(powermod(shared, secret, prime).toString(16).toUpperCase());
-      s.send('/d ' + powermod(generator, secret, prime));
-      newMessage('info', 'shared key initialized <i class=\"info-btn\" onclick=\"explain(\'shared-init\',[\'' + shared_key + '\'])">(info)</i>');
-      newMessage('info', 'public key published');
-      sendMessage('/k ' + r.n + ' ' + r.public);
-      return;
-    }
-    var m = window.atob(m.data);
-    var bytes = new Uint8Array(m.substring(16).split('').map(function(c) {return c.charCodeAt(0)}));
-    var ivec = m.substr(0,16).split('').map(function(c){return c.charCodeAt(0)});
-    var aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(shared_key), new aesjs.Counter(ivec));
-    var d = aesjs.utils.utf8.fromBytes(aes.decrypt(bytes));
-    return onmessage(d.toString());
+  if(m.data && deriveSender(m.data) === 'shared') {
+    var messageParts = m.data.substring('shared'.length + 1)
+                             .split(' ')
+                             .map(function(n) {
+                               return parseInt(n);
+                             }),
+        serverPart = messageParts[0],
+        publicPrime = messageParts[1],
+        publicGenerator = messageParts[2],
+        secret = randomNumber(5),
+        sharedKeyMyPart = powermod(publicGenerator, secret, publicPrime),
+        sharedKeyTemp = powermod(serverPart, secret, publicPrime).toString(16).toUpperCase();
+    sharedKey = sha256(sharedKeyTemp);
+    s.send('/d ' + sharedKeyMyPart);
+    newMessage('info', 'shared key initialized');
+    sendMessage('/k ' + r.n + ' ' + r.public);
+    newMessage('info', 'public key published');
+    return;
+  } else if(m.data) {
+    var decodedMessage = window.atob(m.data),
+        decodedMessageBytes = toAsciiArray(decodedMessage.substring(16)),
+        ivec = toAsciiArray(decodedMessage.substr(0, 16)),
+        aesCounter = new aesjs.Counter(ivec),
+        aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(sharedKey), aesCounter),
+        decryptedMessageBytes = aes.decrypt(decodedMessageBytes),
+        decryptedMessage = aesjs.utils.utf8.fromBytes(decryptedMessageBytes);
+    return onmessage(decryptedMessage);
   }
-  var sender = m.substr(0, m.indexOf(':'));
-  if(sender == 'server') {
-    newMessage('server', m.substring(sender.length + 1));
-  } else if(sender == 'uid') {
-    uid = m.substring(4);
-    newMessage('server', 'your id is: ' + uid);
-  } else if(sender == 'key') {
-    var v = m.split(' ');
-    var partnerUid = v[1],
-        n = parseInt(v[2]),
-        key = parseInt(v[3]);
-    keys[partnerUid] = {'k': key, 'n': n};
-    newMessage('server', 'received key from ' + partnerUid);
-  } else {
-    var v = m.split(' ');
-    if(keys[sender] === undefined) {
-      sendMessage('/kr ' + sender);
-    }
-    var waitForKeyLoop = function() {
-      if(keys[sender] === undefined) {
-        setTimeout(waitForKeyLoop, 500);
-        return;
-      }
-      var decrypted = r.decrypt(v[1]),
-          signature = decrypted.split('#')[0],
-          message =  decrypted.substring(signature.length + 1);
-      if(uidVerify(keys[sender], message, signature)) {
-        newMessage('partner', message);
-      } else {
-        newMessage('server error', 'received signature is incorrect');
-      }
-    };
-    waitForKeyLoop();
+  var sender = deriveSender(m),
+      message = m.substring(sender.length + 1);
+  switch (sender) {
+    case 'server':
+      newMessage('server', message);
+      break;
+    case 'uid':
+      uid = message;
+      newMessage('server', 'your id is: ' + message);
+      break;
+    case 'key':
+      var messageParts = message.substring(1).split(' '),
+          keyUser = messageParts[0],
+          keyN = parseInt(messageParts[1]),
+          keyKey = parseInt(messageParts[2]);
+      keys[keyUser] = {
+        'k': keyKey,
+        'n': keyN
+      };
+      newMessage('server', 'received key from ' + keyUser);
+      break;
+    default:
+      var messageParts = message.split(' '),
+          messageDecrypt = function() {
+            var decryptedMessage = r.decrypt(messageParts[1]),
+                messageSignature = decryptedMessage.substr(0, decryptedMessage.indexOf('#')),
+                decryptedMessageContent = decryptedMessage.substring(messageSignature.length + 1);
+            if(uidVerify(keys[sender], decryptedMessageContent, messageSignature)) {
+              newMessage('partner', decryptedMessageContent);
+            } else {
+              newMessage('server error', 'received incorrect signature');
+            }
+          },
+          waitForKey = function(k) {
+            if(keys[k] === undefined) {
+              setTimeout(waitForKey, 500);
+            } else {
+              messageDecrypt();
+            }
+          };
+      waitForKey(sender);
+      break;
   }
 };
 
-// Listen for click event
-btn_send.onclick = function() {
-  var m = inp_message.value;
-  m = m.replace(/&/g, "&amp;")
-       .replace(/</g, "&lt;")
-       .replace(/>/g, "&gt;");
-  newMessage('me', m);
-  parseMessage(m);
-  inp_message.value = '';
+/**
+ * Handle interface events
+ */
+
+// Handle enter key for inpMessage field
+inpMessage.keyup = function(e) {
+  e.preventDefault();
+  if(e.keyCode === 13) {
+    btnSend.onclick();
+  }
+};
+
+// Handle send button click
+btnSend.onclick = function() {
+  var message = inpMessage.value;
+  inpMessage.value = '';
+  message = message.replace(/&/g, "&amp;")
+                   .replace(/</g, "&lt;")
+                   .replace(/>/g, "&gt;");
+  message = message.trim();
+  newMessage('me', message);
+  parseCommand(message);
 };
