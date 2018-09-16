@@ -37,8 +37,14 @@ main
   overflow-x: hidden
   overflow-y: auto
 
-  &, *
+  &, *:not(h2)
     text-align: justify
+    font-family: 'Times', serif
+    font-size: 1rem
+
+  .info-btn, code
+    font-family: monospace
+    font-size: .9rem
 
   p, h2
     padding: 0 10px 3px 10px
