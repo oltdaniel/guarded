@@ -18,6 +18,12 @@
         <button id="message-send">send</button>
       </div>
     </div>
+    <div class="explanation">
+      <h2>explanation</h2>
+      <div id="explanation">
+
+      </div>
+    </div>
   </body>
 
   <template id="m-rsa-init">
@@ -27,21 +33,28 @@
     {k} {n}
   </template>
   <template id="m-rsa-decrypt">
+    {priv} {n} {m} {d}
   </template>
   <template id="m-rsa-sign">
+    {priv} {n} {m} {s}
   </template>
   <template id="m-rsa-verify">
     {k} {n} {s} {m}
   </template>
   <template id="m-diffie-init">
-    {sp}  {p} {g}
+    {sp} {p} {g}
   </template>
   <template id="m-diffie-finish">
     {k} {sp} {p} {g} {s} {mp}
   </template>
   <template id="m-diffie-encrypt">
+    {m} {k} {e}
   </template>
   <template id="m-diffie-decrypt">
+    {m} {k} {d}
+  </template>
+  <template id="m-help">
+    help
   </template>
 
   <script type="text/javascript" src="/assets/aes.min.js"></script>

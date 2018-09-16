@@ -15,15 +15,7 @@ function explain(type, values) {
   for(var i = 0; i < values.length; i++) {
     modalContent = modalContent.replace(new RegExp('\{' + values[i] + '\}', 'g'), values[++i]);
   }
-  var modalId = 'm-' + Math.random();
-  document.body.innerHTML += '<modal id="' + modalId + '">' +
-    '<div>' +
-    modalContent +
-    '<close onclick="document.getElementById(\'' + modalId + '\').remove()">' +
-    'close' +
-    '</close>' +
-    '</div>' +
-    '</modal>';
+  winExplanation.innerHTML = modalContent;
 }
 
 /**
@@ -169,6 +161,7 @@ function RSA(len, c = 0) {
 }
 
 // Extend RSA prototype with encrypt function
+// NOTE: Not used
 RSA.prototype.encrypt = function(msg) {
   var r = this;
   msg = window.btoa(msg);
@@ -183,13 +176,26 @@ RSA.prototype.decrypt = function(msg) {
   var d = msg.split('.').map(function(c) {
     return String.fromCharCode(powermod(parseInt(c), r.private, r.n));
   }).join('');
+  newMessage('info', "decrypt message " +
+  "<i class=\"info-btn\" onclick=\"" +
+    "explain(\'rsa-decrypt\', " +
+    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg + "\', \'d\', \'" + d + "\']" +
+    ")\">" +
+  "(info)</i>");
   return window.atob(d);
 }
 
 // Extend RSA prototype with sign function
 RSA.prototype.sign = function(msg) {
-  var r = this;
-  return (powermod(msg.hashCode(r.n), this.private, this.n));
+  var r = this,
+      signature = powermod(msg.hashCode(r.n), this.private, this.n);
+  newMessage('info', "sign message " +
+  "<i class=\"info-btn\" onclick=\"" +
+    "explain(\'rsa-sign\', " +
+    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg + "\', \'s\', " + signature + "]" +
+    ")\">" +
+  "(info)</i>");
+  return signature;
 };
 
 /**
@@ -199,7 +205,8 @@ RSA.prototype.sign = function(msg) {
 // Global element variables
 var elHistory = document.getElementById('message-history'),
     inpMessage = document.getElementById('message-content'),
-    btnSend = document.getElementById('message-send');
+    btnSend = document.getElementById('message-send'),
+    winExplanation = document.getElementById('explanation');
 
 // Global protocol variables
 var uid = '',
@@ -236,7 +243,7 @@ function uidVerify(key, msg, signature) {
   newMessage('info', "verify partner message signature " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'rsa-verify\', " +
-    "[\'k\', " + key['k'] + ", \'n\', " + key['n'] + ", \'s\', " + signature + ", \'m\', " + msg + "]" +
+    "[\'k\', " + key['k'] + ", \'n\', " + key['n'] + ", \'s\', " + signature + ", \'m\', \'" + msg + "\']" +
     ")\">" +
   "(info)</i>");
   return (powermod(parseInt(signature), key['k'], key['n']) === msg.hashCode(key['n']));
@@ -263,6 +270,12 @@ function sendMessage(msg) {
       encryptedMsgBytes = aes.encrypt(msgBytes),
       encryptedMsg = String.fromCharCode.apply(null, encryptedMsgBytes),
       encodedEncryptedMessage = window.btoa(String.fromCharCode.apply(null, ivec) + encryptedMsg);
+  newMessage('info', "encrypt message for server " +
+  "<i class=\"info-btn\" onclick=\"" +
+    "explain(\'diffie-encrypt\', " +
+    "[\'m\', \'" + msg + "\', \'k\', \'" + sharedKey + "\', \'e\', \'" + encodedEncryptedMessage + "\']" +
+    ")\">" +
+  "(info)</i>");
   s.send(encodedEncryptedMessage);
 }
 
@@ -288,6 +301,9 @@ function parseCommand(msg) {
     case '/s':
       sendMessage('/s');
       break;
+    case '/h':
+      explain('help', []);
+      return;
     default:
       newMessage('server', 'unknown command');
       break;
@@ -306,6 +322,7 @@ function deriveSender(msg) {
 // Handle connect event to server
 s.onopen = function() {
   newMessage('server', 'connected to server');
+  newMessage('server', 'use /h for help');
   var ping = function() {
     s.send('ping');
     setTimeout(ping, 5000);
@@ -357,6 +374,12 @@ s.onmessage = function onmessage(m) {
         aes = new aesjs.ModeOfOperation.ctr(aesjs.utils.hex.toBytes(sharedKey), aesCounter),
         decryptedMessageBytes = aes.decrypt(decodedMessageBytes),
         decryptedMessage = aesjs.utils.utf8.fromBytes(decryptedMessageBytes);
+    newMessage('info', "decrypt message from server " +
+    "<i class=\"info-btn\" onclick=\"" +
+      "explain(\'diffie-decrypt\', " +
+      "[\'m\', \'" + m.data + "\', \'k\', \'" + sharedKey + "\', \'d\', \'" + decryptedMessage + "\']" +
+      ")\">" +
+    "(info)</i>");
     return onmessage(decryptedMessage);
   }
   var sender = deriveSender(m),
@@ -409,10 +432,10 @@ s.onmessage = function onmessage(m) {
  */
 
 // Handle enter key for inpMessage field
-inpMessage.keyup = function(e) {
+inpMessage.onkeyup = function(e) {
   e.preventDefault();
   if(e.keyCode === 13) {
-    btnSend.onclick();
+    btnSend.click();
   }
 };
 
