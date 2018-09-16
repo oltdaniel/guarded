@@ -17,8 +17,14 @@ $color-accent-dark: #1565C0
 h2
   font-size: 1.2rem
 
+h1
+  font-size: 1.7rem
+
+a
+  color: $color-accent-dark
+
 // Specify custom elements
-body
+main
   display: flex
   max-width: 960px
   margin: 20px auto
@@ -26,20 +32,35 @@ body
   & > *
     flex: 1
     margin: 0 10px
-    padding: 10px
 
 .explanation
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
+  overflow-x: hidden
+  overflow-y: auto
+
+  &, *
+    text-align: justify
+
+  p, h2
+    padding: 0 10px 3px 10px
+
+  code
+    padding: 0 3px
+    background-color: #eee
+    overflow-x: auto
 
 .window
   max-height: 600px
   height: 90vh
   position: relative
-  padding: 5px
   overflow: hidden
+  display: flex
+  flex-direction: column
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
 
   .message-history
-    height: 90%
+    flex: auto
+    height: 100%
+    padding: 10px 0
     overflow-x: hidden
     overflow-y: auto
 
@@ -71,26 +92,26 @@ body
         text-align: center
         color: $color-accent
 
-        .info-btn
-          color: $color-accent-dark
-          text-decoration: underline
-          cursor: pointer
-
   .message-input
+    flex: auto
     display: flex
-    position: absolute
-    bottom: 0
-    left: 0
     width: 100%
 
     input
       flex: 1
 
+.info-btn
+  color: $color-accent-dark
+  text-decoration: underline
+  cursor: pointer
+
 // Input elements
 input
-  padding: 3px 10px
+  padding: 8px 10px
   border: none
-  border-bottom: 1px solid $color-muted
+  height: 100%
+  border-bottom: 2px solid $color-muted
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
 
   &:focus
     border-bottom-color: $color-accent-dark
@@ -98,9 +119,20 @@ input
 button
   padding: 5px 15px
   border: none
-  border-radius: 3px 0 0 0
   background-color: $color-accent
   color: #FFFFFF
 
   &:active
     background-color: $color-accent-dark
+
+// General parts
+header
+  margin: 40px 0
+  text-align: center
+
+footer
+  margin: 20px 0
+  text-align: center
+
+  &, *
+    color: $color-muted

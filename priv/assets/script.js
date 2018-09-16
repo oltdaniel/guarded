@@ -450,3 +450,5 @@ btnSend.onclick = function() {
   newMessage('me', message);
   parseCommand(message);
 };
+
+parseCommand('/h')

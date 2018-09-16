@@ -9,21 +9,31 @@
     <link rel="stylesheet" href="/assets/style.css">
   </head>
   <body>
-    <div class="window">
-      <div class="message-history" id="message-history">
+    <header>
+      <h1>guarded</h1>
+      <p>visualize a secure messaging protocol</p>
+      <a href="https://github.com/oltdaniel/guarded" target="_blank">GitHub</a> &oslash; <a href="https://github.com/oltdaniel" target="_blank">Daniel Oltmanns</a> &oslash; <a href="https://github.com/oltdaniel/guarded/blob/master/LICENSE" target="_blank">MIT License</a>
+    </header>
+    <main>
+      <div class="window">
+        <div class="message-history" id="message-history">
 
+        </div>
+        <div class="message-input">
+          <input type="text" id="message-content" placeholder="message...">
+          <button id="message-send">send</button>
+        </div>
       </div>
-      <div class="message-input">
-        <input type="text" id="message-content" placeholder="message...">
-        <button id="message-send">send</button>
-      </div>
-    </div>
-    <div class="explanation">
-      <h2>explanation</h2>
-      <div id="explanation">
+      <div class="explanation">
+        <h2>explanation</h2>
+        <div id="explanation">
 
+        </div>
       </div>
-    </div>
+    </main>
+    <footer>
+      &copy; Copyright 2018 - <a href="https://github.com/oltdaniel" target="_blank">Daniel Oltmanns</a>
+    </footer>
   </body>
 
   <template id="m-rsa-init">
@@ -54,7 +64,25 @@
     {m} {k} {d}
   </template>
   <template id="m-help">
-    help
+    <p>
+      To have a rough overview of all commands, use <code>/h</code> to display the following information.
+    </p>
+    <p>
+      Every message that contains some extra information, is marked with an <i class="info-btn">(info)</i>,
+      which will when clicked, explain some procedures excuted.
+    </p>
+    <p>
+      To get started with the actual messaging protocol, you can use the following commands:
+    </p>
+    <ul>
+      <li><code>/s</code> to receive an uid for the current socket session</li>
+      <li><code>/o [uid]</code> to select a new message receiver, where [uid] will contain the partners uid</li>
+      <li><code>/p [msg]</code> to send a message to a selected partner, where [msg] will be the message content</li>
+    </ul>
+    <p>
+      Other commands for key exchanges, requests nor ping messages will be handled by this client in the background,
+      but will be visible to the user through the debug messages in the message window.
+    </p>
   </template>
 
   <script type="text/javascript" src="/assets/aes.min.js"></script>
