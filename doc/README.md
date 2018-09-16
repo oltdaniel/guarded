@@ -19,27 +19,31 @@ communication between e.g. Alice and Bob could look like the following.
 
 ```
 # Key exchange
--> send prime, generator and key exchange part to the server
-<- receive the key exchange part of the server
+-> receive the key exchange part, prime and generator of the server
+<- send own key part with `/d [num]` to complete key exchange
+
+# Start a new session
+<- send `/s` to receive an uid from the server
 
 # Publish key
--> send public-key to the server
+<- send public-key to the server with `/k [pub] [n]`
 
 # Open new session to the user
-/o bob
--> send `/kr bob` to the server to request bob's public key
-<- receive public key of bob
+<- open a new session to bob with `/o bob`
+<- send `/kr bob` to the server to request bob's public key
+-> receive public key of bob
 
 # Send message to bob
-/p Hello bob
 -> send encrypted, signed message encrypted with the shared
-   key to the server
+   key to the server by using `/p Hello bob`
 ```
 
 ## Commands
 
 | command | description |
 | - | - |
+| `/s` | initialize the current socket with a new uid |
+| `/d [num]` | publish the client part for the shared key |
 | `/o [uid]` | select a new message receiver and request the public key to send further messages |
 | `/p [msg]` | send a message to the previous selected message receiver |
 | `/k [pub] [n]` | publish the public key and modulus parameter to the server |
@@ -48,4 +52,5 @@ communication between e.g. Alice and Bob could look like the following.
 
 ## Issues
 
-###### TODO: List issues
+- [ ] The used prime number for the shared key defined in the server code [`src/guarded_ws_handle.erl`](https://github.com/oltdaniel/guarded/blob/2d78e38b525ea8a0bf6911d2945a35ee41584986/src/guarded_ws_handler.erl#L21) should be generated for each connection and shouldn't be static
+- [ ] The used numbers for the calculations are to small in order to be secure against bruteforce attacks, see [`src/guarded_ws_handler.erl`](https://github.com/oltdaniel/guarded/blob/2d78e38b525ea8a0bf6911d2945a35ee41584986/src/guarded_ws_handler.erl#L36) and [`priv/assets/script.js`](https://github.com/oltdaniel/guarded/blob/2d78e38b525ea8a0bf6911d2945a35ee41584986/priv/assets/script.js#L197)
