@@ -37,31 +37,123 @@
   </body>
 
   <template id="m-rsa-init">
-    {p} {q} {n} {phi} {e} {d}
+    To construct an secure communication channel between two parties, using a non-shared key, that can be published
+    publicly for encryption, and that requires a private key for decryption, we can use the <i>"RSA public-key
+    cryptosystem"</i>.<br><br>
+
+    This kind of cryptography will allow e.g. the user to generate a key locally, without any further exchange with
+    another party in order to derive a key. TO initialize this process, we need two private primes called <i>p</i> and
+    <i>q</i>, in this case <i>p = {p}</i> and <i>q = {q}</i>. Both private numbers will be the used to calculate
+    <i>n</i>, an publicly known parameter, by using <i>n = p * q = {p} * {q} = {n}</i>. As the multiplication hides
+    the actual value of <i>p</i> and <i>q</i> it is safe to use them for further security related calculations.<br><br>
+
+    In this case, we use <i>p</i> and <i>p</i> to calculate <i>&phi;(n) = (p - 1) * (q - 1)</i>. This will result in
+    <i>&phi;(n) = ({p} - 1) * ({q} - 1) = {phi}</i>. Here it is important to note, that this number needs to be
+    kept private, as it is used to derive the private and public key from these parameters in the next step.<br><br>
+
+    Mentioned in the first paragraph, this kind of cryptography makes use of two keys, e.g. <i>e</i> the public key
+    and <i>d</i> the private key. Both keys can be calculated with <i>d * e = 1 mod &phi;(n)</i>. As we have now two
+    unknown variables, we are forced to chose one. In this case we will chose <i>e</i>, which, because of performance
+    reasons, should be an small number, e.g. <i>e = {e}</i>. The private key <i>d</i> can then be derived with the
+    formula <i>d = pow(e, -1) mod &phi;(n)</i>. Resulting from that, <i>d = pow({e}, -1) mod &phi;(n) = {d}</i>.
   </template>
   <template id="m-rsa-encrypt">
-    {k} {n}
+    Compared to the <i>"Diffie and Hellman Key Exchange"</i>, the <i>"RSA cryptosystem"</i> describes a way for decrypting
+    and encrypting messages. The formula for encryption is <i>c = pow(m, pub) mod n</i>, where <i>m</i> is
+    the messages <i>"{m}"</i>, <i>pub</i> the public key and <i>n</i>, the publicly known parameter of
+    key <i>pub</i>. In this case <i>pub = {pub}</i> and <i>n = {n}</i>.
+
+    Using this encryption method and parameters, <i>c</i> will result in the following text (here, every character is
+    encrypted with the function and separated with a '.'):
+
+    <pre><code>{e}</code></pre>
   </template>
   <template id="m-rsa-decrypt">
-    {priv} {n} {m} {d}
+    Compared to the <i>"Diffie and Hellman Key Exchange"</i>, the <i>"RSA cryptosystem"</i> describes a way for decrypting
+    and encrypting messages. The formula for decryption can be described with <i>m = pow(c, priv) mod n</i>, where <i>c</i> is
+    the encrypted messages <i>"{m}"</i>, <i>priv</i> the private key only known to the client and <i>n</i> the publicly known parameter of
+    key <i>priv</i>. In this case <i>priv = {priv}</i> and <i>n = {n}</i>.<br><br>
+
+    Using this decryption method and parameters, <i>m</i> will result in the following text:
+
+    <pre><code>{d}</code></pre>
   </template>
   <template id="m-rsa-sign">
-    {priv} {n} {m} {s}
+    Signatures play an important role in cryptography, as they allow others to verify the origin of a specific message.
+    This is sepcially usefull to any kind of communication channel, as there is no trust required into the message distributer,
+    as the signatures can be verified manually. This procedure may make an complex impression, but as we already have
+    defined the encryption and decryption methods for the <i>"RSA cryptosystem"</i>, we can use those in order to derive a
+    message signanture.<br><br>
+
+    The result of this is, that we can calculate the signature <i>s</i> by the following formula <i>s = pow(m, priv) mod n</i>,
+    where we use the same parameters as before, defined in the RSA key generation. In this case the message <i>m = {m}</i>,
+    <i>priv = {priv}</i> and <i>n = {n}</i>.<br><br>
+
+    The signatures we will then be able to derive from this forumla is as follows: <i>s = pow({m}, {priv}) mod {n} = {s}</i>.
   </template>
   <template id="m-rsa-verify">
-    {k} {n} {s} {m}
+    Signatures are very helpful, as explained in the section for generating signatures. However, we also need to verify them,
+    in order to give them a reason to exist. For this we will use the following formula, in order to derive the original
+    hash code of the given signature, <i>m = pow(s, pub) mod n</i>.<br><br>
+
+    The hash we will then be able to derive from this forumla is as follows: <i>m = pow({s}, {pub}) mod {n} = {m}</i>.
+    Compared to the hash calculated of the message content that is delivered as well, <i>m</i> should be equal to that
+    in order to have a valid singature.
   </template>
   <template id="m-diffie-init">
-    {sp} {p} {g}
+    An simple way of initializing an encrypted communication channel, is deriving a shared secret from a key exchange
+    done between two different parties. In this case, the <i>"Diffie and Hellman Key Exchange"</i> has been chosen. However, this
+    explanation will only contain the steps done with the data received from the server. Any further steps will
+    be explained in the next log message that explains how the final shared secret has been initialized on both sides.<br><br>
+
+    To start right away, the server will chose some public numbers <i>p</i> and <i>g</i>, where <i>p</i> will be
+    an selected prime number and <i>g</i> any other random number. In this case <i>p = {p}</i> and <i>g = {g}</i>.<br><br>
+
+    Additionally to these parameters for the key exchange, the server will add his part of the key exchange <i>sp = {sp}</i>.
+    This part has been calculated with the formula <i>p = pow(g, s) mod p</i>, where <i>p</i> and <i>g</i> will be equal to
+    the publicly shared parameters and <i>s</i> to an randomly selected secret number.
   </template>
   <template id="m-diffie-finish">
-    {k} {sp} {p} {g} {s} {mp}
+    As explained in the <i>"shared key parameters received"</i> log message, we already received <i>p</i>, <i>g</i> and
+    <i>sp</i>. With these numbers we can finalize the shared key exchange. At this point it is important, to select an
+    secret random number for the client, in this case <i>s = {s}</i>.<br><br>
+
+    By using the same procedure of calculating the server shared secret part, we can calculate the client part as well.
+    The part calculated for the client needs then to be exchange with the other party, as done with the server part before.
+    This will then be <i>p = pow({g}, {s}) mod {p} = {mp}</i>.<br><br>
+
+    Now it is important to merge both parts, into a single key. This needs to be done on both sides, but as it is the same
+    procedure, this explanation will be focused on the client only. The client will take the server part <i>sp = {sp}</i>
+    and will use the formula <i>k = pow(sp, s) mod p</i>, to derive the key <i>k</i>, that can be then used in a cypher
+    for encryption and decryption. Followed by that we can conclude that <i>k = pow({sp}, {s}) mod {p} = {k}</i>.<br><br>
+
+    However, as the size of this number is hard to control, and most cyphers require an constant key size, we can use a
+    hash function to result in a same length key on both sides. In this case we use the <i>sha256</i> hash that
+    will return the following shared key:
+
+    <pre><code>{sk}</code></pre>
   </template>
   <template id="m-diffie-encrypt">
-    {m} {k} {e}
+    Having initialized an shared key between both parties, the server and client, we can use this key to encrypt nor
+    decrypt a message. As the used <i>"Diffie and Hellman Key Exchange"</i> only describes the way to derive a shared
+    secret between two parties through an non-protected communication channel, encryption and decryption functions
+    aren't provided. This requires the use of an cypher, in this case <i>"AES"</i> using the <i>"CTR mode"</i>.<br><br>
+
+    The message <i>m</i>, here <i>m = "{m}"</i>, will cyphered with the key <i>k = "{k}"</i> (here 256bit in hex form),
+    by the following function <i>c = cypher("{m}", "{k}")</i>. As an result of this function <i>c</i> will be equal to:
+
+    <pre><code>{e}</code></pre>
   </template>
   <template id="m-diffie-decrypt">
-    {m} {k} {d}
+    Having initialized an shared key between both parties, the server and client, we can use this key to encrypt nor
+    decrypt a message. As the used <i>"Diffie and Hellman Key Exchange"</i> only describes the way to derive a shared
+    secret between two parties through an non-protected communication channel, encryption and decryption functions
+    aren't provided. This requires the use of an cypher, in this case <i>"AES"</i> using the <i>"CTR mode"</i>.<br><br>
+
+    The cyphered message <i>d</i>, here <i>d = "{m}"</i>, will decyphered with the key <i>k = "{k}"</i> (here 256bit in hex form),
+    by the following function <i>m = decypher("{m}", "{k}")</i>. As an result of this function <i>m</i> will be equal to:
+
+    <pre><code>{d}</code></pre>
   </template>
   <template id="m-help">
     <p>

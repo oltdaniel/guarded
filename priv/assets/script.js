@@ -179,7 +179,7 @@ RSA.prototype.decrypt = function(msg) {
   newMessage('info', "decrypt message " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'rsa-decrypt\', " +
-    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg + "\', \'d\', \'" + d + "\']" +
+    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg.substr(0, 5) + "...\', \'d\', \'" + window.atob(d) + "\']" +
     ")\">" +
   "(info)</i>");
   return window.atob(d);
@@ -192,7 +192,7 @@ RSA.prototype.sign = function(msg) {
   newMessage('info', "sign message " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'rsa-sign\', " +
-    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg + "\', \'s\', " + signature + "]" +
+    "[\'priv\', " + this.private + ", \'n\', " + this.n + ", \'m\', \'" + msg.hashCode(r.n) + "\', \'s\', " + signature + "]" +
     ")\">" +
   "(info)</i>");
   return signature;
@@ -226,16 +226,17 @@ var s = new WebSocket('ws://' + window.location.hostname + ':' + window.location
 
 // Encrypt a message for another user
 function uidEncrypt(key, msg) {
+  msg = window.btoa(msg);
+  var msgEncrypted = msg.split('').map(function(c) {
+    return (powermod(c.charCodeAt(0), key['k'], key['n']));
+  }).join('.');
   newMessage('info', "encrypt with partner key " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'rsa-encrypt\', " +
-    "[\'k\', " + key['k'] + ", \'n\'" + key['n'] + "]" +
+    "[\'pub\', " + key['k'] + ", \'n\', " + key['n'] + ", \'m\', \'" + msg.substr(0, 5) + "...\', \'e\', \'" + msgEncrypted + "\']" +
     ")\">" +
   "(info)</i>");
-  msg = window.btoa(msg);
-  return msg.split('').map(function(c) {
-    return (powermod(c.charCodeAt(0), key['k'], key['n']));
-  }).join('.');
+  return msgEncrypted;
 }
 
 // Verify signature of another user
@@ -243,7 +244,7 @@ function uidVerify(key, msg, signature) {
   newMessage('info', "verify partner message signature " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'rsa-verify\', " +
-    "[\'k\', " + key['k'] + ", \'n\', " + key['n'] + ", \'s\', " + signature + ", \'m\', \'" + msg + "\']" +
+    "[\'pub\', " + key['k'] + ", \'n\', " + key['n'] + ", \'s\', " + signature + ", \'m\', \'" + msg.hashCode(key['n']) + "\']" +
     ")\">" +
   "(info)</i>");
   return (powermod(parseInt(signature), key['k'], key['n']) === msg.hashCode(key['n']));
@@ -273,7 +274,7 @@ function sendMessage(msg) {
   newMessage('info', "encrypt message for server " +
   "<i class=\"info-btn\" onclick=\"" +
     "explain(\'diffie-encrypt\', " +
-    "[\'m\', \'" + msg + "\', \'k\', \'" + sharedKey + "\', \'e\', \'" + encodedEncryptedMessage + "\']" +
+    "[\'m\', \'" + msg.substr(0, 5) + "...\', \'k\', \'" + sharedKey.substr(0, 5) + "...\', \'e\', \'" + encodedEncryptedMessage + "\']" +
     ")\">" +
   "(info)</i>");
   s.send(encodedEncryptedMessage);
@@ -348,8 +349,8 @@ s.onmessage = function onmessage(m) {
         publicGenerator = messageParts[2],
         secret = randomNumber(5),
         sharedKeyMyPart = powermod(publicGenerator, secret, publicPrime),
-        sharedKeyTemp = powermod(serverPart, secret, publicPrime).toString(16).toUpperCase();
-    sharedKey = sha256(sharedKeyTemp);
+        sharedKeyTemp = powermod(serverPart, secret, publicPrime);
+    sharedKey = sha256(sharedKeyTemp.toString(16).toUpperCase());
     s.send('/d ' + sharedKeyMyPart);
     newMessage('info', "shared key parameters received " +
     "<i class=\"info-btn\" onclick=\"" +
@@ -360,7 +361,7 @@ s.onmessage = function onmessage(m) {
     newMessage('info', "shared key initialized " +
     "<i class=\"info-btn\" onclick=\"" +
       "explain(\'diffie-finish\', " +
-      "[\'k\', \'" + sharedKey + "\', \'sp\', " + serverPart + ", \'p\', " + publicPrime + ", \'g\', " + publicGenerator + ", \'s\', " + secret + ", \'mp\', " + sharedKeyMyPart + "]" +
+      "[\'sk\', \'" + sharedKey + "\', \'sp\', " + serverPart + ", \'p\', " + publicPrime + ", \'g\', " + publicGenerator + ", \'s\', " + secret + ", \'mp\', " + sharedKeyMyPart + ",  \'k\', \'" + sharedKeyTemp + "\']" +
       ")\">" +
     "(info)</i>");
     sendMessage('/k ' + r.n + ' ' + r.public);
@@ -377,7 +378,7 @@ s.onmessage = function onmessage(m) {
     newMessage('info', "decrypt message from server " +
     "<i class=\"info-btn\" onclick=\"" +
       "explain(\'diffie-decrypt\', " +
-      "[\'m\', \'" + m.data + "\', \'k\', \'" + sharedKey + "\', \'d\', \'" + decryptedMessage + "\']" +
+      "[\'m\', \'" + m.data.substr(0, 5) + "...\', \'k\', \'" + sharedKey.substr(0, 5) + "...\', \'d\', \'" + decryptedMessage + "\']" +
       ")\">" +
     "(info)</i>");
     return onmessage(decryptedMessage);
@@ -415,14 +416,19 @@ s.onmessage = function onmessage(m) {
               newMessage('server error', 'received incorrect signature');
             }
           },
-          waitForKey = function(k) {
-            if(keys[k] === undefined) {
+          waitForKey = function() {
+            if(keys[sender] === undefined) {
               setTimeout(waitForKey, 500);
             } else {
               messageDecrypt();
             }
           };
-      waitForKey(sender);
+      if(keys[sender] == undefined) {
+        sendMessage('/kr ' + sender);
+        waitForKey();
+      } else {
+        messageDecrypt();
+      }
       break;
   }
 };
