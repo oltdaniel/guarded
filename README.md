@@ -23,6 +23,23 @@ Privacy is another aspect this protocol will take care of, by using the RSA algo
 
 The detailed documentation on the protocol can be found [here in the `/doc` directory](https://github.com/oltdaniel/guarded/tree/master/doc/README.md).
 
+## Usage
+
+Use the following commands in order to execute this software:
+
+```shell
+# Clone the code
+$ git clone https://github.com/oltdaniel/guarded.git
+$ cd guarded
+# Load rebar3
+$ make load-rebar3
+# Start the server
+$ make run
+```
+
+By visiting [http://localhost:1234/](http://127.0.0.1:1234) you will have
+access to the application.
+
 ## License
 
 _Just do what you'd like to_
