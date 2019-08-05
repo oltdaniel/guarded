@@ -1,5 +1,7 @@
 # guarded :lock:
 
+# PROJECT archived. NO further changes since 09/20/2018.
+
 visualize a secure messaging protocol
 
 ## About
